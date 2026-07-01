@@ -349,7 +349,7 @@ function hideCheer(){ document.getElementById('cheer').classList.remove('show');
 
 function openNameModal(){ document.getElementById('nameInput').value=studentName; document.getElementById('nameErr').textContent=''; document.getElementById('nameModal').style.display='flex'; }
 function saveName(){ const v=document.getElementById('nameInput').value.trim(); if(v.length<1){ document.getElementById('nameErr').textContent='이름을 입력해 주세요.'; return; }
-  studentName=v; document.getElementById('nameDisplay').textContent=v; document.getElementById('nameModal').style.display='none';
+  studentName=v; try{localStorage.setItem('kstep_name',v);}catch(e){} document.getElementById('nameDisplay').textContent=v; document.getElementById('nameModal').style.display='none';
   showCheer(v+'님, 반가워요! 오늘도 즐겁게 공부해요 😊'); setTimeout(hideCheer,2600); }
 document.getElementById('nameInput').addEventListener('keydown',e=>{ if(e.key==='Enter') saveName(); });
 
@@ -1206,6 +1206,9 @@ function pickMC(btn,qi){
   }
 }
 
+
+/* 저장된 이름 자동 적용 — 같은 사이트 내 모든 페이지 공유(한 번만 입력) */
+(function(){ try{ var n=localStorage.getItem('kstep_name'); if(n){ studentName=n; var d=document.getElementById('nameDisplay'); if(d) d.textContent=n; var m=document.getElementById('nameModal'); if(m) m.style.display='none'; } }catch(e){} })();
 </script>
 </body>
 </html>
