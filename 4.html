@@ -11,13 +11,13 @@
   :root{
     --ink:#2b2b2b; --line:#cfcfcf; --ghost:#dcdcdc;
     --accent:#3a7bd5; --accent2:#2bb673; --warn:#e2574c;
-    --paper:#ffffff; --bg:#eef1f5; --soft:#fff7e6;
+    --paper:#ffffff; --bg:#eaf3fc; --soft:#fff7e6;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   body{margin:0;background:var(--bg);font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif;color:var(--ink);padding:18px 10px 60px;}
   .sheet{max-width:820px;margin:0 auto;background:var(--paper);border:1px solid #ddd;border-radius:16px;box-shadow:0 8px 28px rgba(0,0,0,.08);overflow:hidden;}
   .topbar{display:flex;justify-content:space-between;align-items:center;padding:10px 18px;font-size:13px;color:#888;border-bottom:1px solid #eee;}
-  .who{display:flex;align-items:center;gap:8px;}
+  .who{display:flex;align-items:center;gap:8px;}.toc-btn{border:1.5px solid var(--accent);background:#fff;color:var(--accent);border-radius:14px;padding:5px 12px;font-size:13px;font-weight:700;cursor:pointer;transition:.15s;}.toc-btn:hover{background:var(--accent);color:#fff;}
   .who .label{color:#888;}
   .who .student-name{font-weight:700;color:var(--accent);font-size:15px;}
   .who button{border:1px solid #ccc;background:#fff;border-radius:14px;padding:3px 10px;font-size:12px;cursor:pointer;color:#666;}
@@ -136,7 +136,7 @@
   @media print{ .words,.panel,.tabs,.scoreboard,.cheer,.modal-bg{display:none!important;} }
 
   /* QR (인쇄 교재용) */
-  .page-qr{position:absolute;top:10px;right:14px;z-index:5;text-align:center;
+  .page-qr{display:none !important;position:absolute;top:10px;right:14px;z-index:5;text-align:center;
     background:#fff;border:1px solid #e6e6e6;border-radius:8px;padding:6px 6px 4px;
     box-shadow:0 2px 8px rgba(0,0,0,.06);}
   .page-qr canvas{width:70px;height:70px;image-rendering:pixelated;display:block;}
@@ -162,7 +162,7 @@
 
   <div class="sheet">
     <div class="topbar">
-      <span>4쪽 · K-STEP 신속 한국어 교재</span>
+      <button class="toc-btn" onclick="goToc()" title="전체 목차 보기">☰ 목차 보기</button>
       <span class="who">
         <span class="label">이름:</span>
         <span class="student-name" id="nameDisplay">-</span>
@@ -255,7 +255,7 @@ function hideCheer(){ document.getElementById('cheer').classList.remove('show');
 
 function openNameModal(){ document.getElementById('nameInput').value=studentName; document.getElementById('nameErr').textContent=''; document.getElementById('nameModal').style.display='flex'; }
 function saveName(){ const v=document.getElementById('nameInput').value.trim(); if(v.length<1){ document.getElementById('nameErr').textContent='이름을 입력해 주세요.'; return; }
-  studentName=v; try{localStorage.setItem('kstep_name',v);}catch(e){} document.getElementById('nameDisplay').textContent=v; document.getElementById('nameModal').style.display='none';
+  studentName=v; try{localStorage.setItem(NAME_KEY,v);}catch(e){} document.getElementById('nameDisplay').textContent=v; document.getElementById('nameModal').style.display='none';
   showCheer(v+'님, 반가워요! 오늘도 즐겁게 공부해요 😊'); setTimeout(hideCheer,2600); }
 document.getElementById('nameInput').addEventListener('keydown',e=>{ if(e.key==='Enter') saveName(); });
 
@@ -645,15 +645,26 @@ const LAST_PAGE = 300;    // 마지막 쪽
 // 같은 폴더에 p1.html, p2.html ... 형태로 둘 경우의 주소 규칙.
 // (GitHub/Netlify에서 p/49 형태로 둘 거면 pageUrl을 그 규칙으로 바꾸면 됩니다)
 function pageUrl(n){ return n + '.html'; }
+// ── 챕터 모드: ?ch=N 이 있으면 그 챕터 범위 안에서만 이동 ──
+const CH_RANGES = {1:[1,16],2:[17,32],3:[33,48],4:[49,64],5:[65,80],6:[81,96],7:[97,112],8:[113,128],9:[129,143],10:[144,159],11:[160,175],12:[176,191],13:[192,207],14:[208,221],15:[222,237],16:[238,253]};
+function getChParam(){ const m=location.search.match(/[?&]ch=(\d+)/); return m?parseInt(m[1],10):null; }
+const CH = getChParam();
+const NAME_KEY = 'kstep_name_ch' + (CH || 'x');
+// 현재 챕터 번호(역산): CH 있으면 그것, 없으면 PAGE로 계산
+function chapterOfPage(p){ for(const k in CH_RANGES){ if(p>=CH_RANGES[k][0] && p<=CH_RANGES[k][1]) return parseInt(k,10); } return null; }
+function goToc(){ const c = CH || chapterOfPage(PAGE); location.href = 'index.html' + (c ? ('?ch='+c) : ''); }
+const CH_LO = (CH && CH_RANGES[CH]) ? CH_RANGES[CH][0] : FIRST_PAGE;
+const CH_HI = (CH && CH_RANGES[CH]) ? CH_RANGES[CH][1] : LAST_PAGE;
+function pageUrlCh(n){ return pageUrl(n) + (CH ? ('?ch='+CH) : ''); }
 function goPage(dir){
   const target = PAGE + dir;
-  if(target < FIRST_PAGE || target > LAST_PAGE) return;
-  location.href = pageUrl(target);
+  if(target < CH_LO || target > CH_HI) return;
+  location.href = pageUrlCh(target);
 }
 (function initArrows(){
   const prev=document.getElementById('prevBtn'), next=document.getElementById('nextBtn');
-  if(PAGE<=FIRST_PAGE) prev.classList.add('disabled');
-  if(PAGE>=LAST_PAGE) next.classList.add('disabled');
+  if(PAGE<=CH_LO) prev.classList.add('disabled');
+  if(PAGE>=CH_HI) next.classList.add('disabled');
 })();
 
 
@@ -661,7 +672,7 @@ function goPage(dir){
 /* 아래 SITE_BASE 를 본인 GitHub Pages 주소로 바꾸세요.
    예: 'https://USERNAME.github.io/REPO/'  (끝에 슬래시 포함)
    비워두면('') 화면에 QR이 표시되지 않습니다. */
-const SITE_BASE = '';
+const SITE_BASE = 'https://wjdrych.github.io/korean-book/';
 
 /* ============================================================
    qr-core.js  —  의존성 없는 QR 코드 인코더 (Model 2)
@@ -997,7 +1008,7 @@ const SITE_BASE = '';
   if(!SITE_BASE) return;
   try{
     const base = SITE_BASE.endsWith('/') ? SITE_BASE : SITE_BASE + '/';
-    const url = base + 'p' + PAGE + '.html';
+    const url = base + PAGE + '.html' + (typeof CH!=='undefined' && CH ? ('?ch='+CH) : '');
     const qr = QRCore.create(url);
     const n = qr.getModuleCount();
     const scale = 4, quiet = 4;
@@ -1015,9 +1026,18 @@ const SITE_BASE = '';
 })();
 
 
-(function(){ try{ var n=localStorage.getItem('kstep_name'); if(n){ studentName=n;
-  var d=document.getElementById('nameDisplay'); if(d) d.textContent=n;
-  var m=document.getElementById('nameModal'); if(m) m.style.display='none'; } }catch(e){} })();
+(function(){
+  try{
+    var n=localStorage.getItem(NAME_KEY);
+    if(n){ studentName=n;
+      var d=document.getElementById('nameDisplay'); if(d) d.textContent=n;
+      var m=document.getElementById('nameModal'); if(m) m.style.display='none';
+    } else {
+      // 이 챕터 이름이 아직 없으면 입력 모달을 띄운다
+      var m2=document.getElementById('nameModal'); if(m2){ document.getElementById('nameInput').value=''; m2.style.display='flex'; setTimeout(function(){document.getElementById('nameInput').focus();},100); }
+    }
+  }catch(e){}
+})();
 </script>
 </body>
 </html>
